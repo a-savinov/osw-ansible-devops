@@ -11,7 +11,7 @@ url=$(git remote get-url "$origin")
 
 for line in "$(git ls-remote -h $url)"; do
     fields=($(echo $line | tr -s ' ' ))
-    if  [[ "${fields[0]}" == "$commit" ]] 
+    if  [[ "${fields[0]}" == "$commit" ]]
     then
         echo "Nothing new"
     else
@@ -21,4 +21,3 @@ for line in "$(git ls-remote -h $url)"; do
         ansible-playbook -v -i inventory/all all.yml --skip-tags hardening
     fi
 done
-
