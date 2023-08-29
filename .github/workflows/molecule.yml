@@ -38,6 +38,7 @@ jobs:
 
       - name: Install Ansible dependencies
         run: ansible-galaxy install -r requirements.yml -f
+        working-directory: "${{ github.repository }}"
 
       - name: Run Molecule test
         run: molecule converge
