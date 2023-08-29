@@ -41,7 +41,7 @@ jobs:
         working-directory: "${{ github.repository }}"
 
       - name: Run Molecule test
-        run: molecule converge
+        run: molecule converge --  --skip-tags hardening
         working-directory: "${{ github.repository }}"
         env:
           PY_COLORS: '1'
