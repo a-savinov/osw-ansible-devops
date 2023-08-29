@@ -8,8 +8,10 @@ jobs:
         with:
           path: "${{ github.repository }}"
       - name: Molecule
-        uses: monolithprojects/action-molecule@v1.4.5
+        uses: gofrolist/molecule-action@v2.4.0
         with:
           molecule_command: converge
-          # scenario: special_scenario
-          # converge_extra_args: --tags foo,bar --extra_vars "my_var=true"
+          # molecule_options: --debug --base-config molecule/_shared/base.yml
+          # molecule_args: --scenario-name ${{ matrix.scenario }}
+        env:
+          ANSIBLE_FORCE_COLOR: '1'
