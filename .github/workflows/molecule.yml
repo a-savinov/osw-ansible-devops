@@ -8,7 +8,7 @@ jobs:
         with:
           path: "${{ github.repository }}"
       - name: Molecule
-        uses: monolithprojects/action-molecule@v1.4.1
+        uses: monolithprojects/action-molecule@v2.4.0
         with:
           molecule_command: converge
           # scenario: special_scenario
