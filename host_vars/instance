@@ -122,9 +122,9 @@ nginx_vhosts:
 
 supervisor_programs:
   - name: opensourcewebsite-gitautodeploy-8005
-    command: >- 
+    command: >-
       /usr/local/bin/git-auto-deploy
-      --quiet 
+      --quiet
       --config /etc/git-auto-deploy-opensourcewebsite.org.conf.json
     state: present
     configuration: |
