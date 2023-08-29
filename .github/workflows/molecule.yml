@@ -36,7 +36,10 @@ jobs:
       - name: Install test dependencies
         run: pip3 install ansible docker molecule molecule-plugins[docker] "requests<2.29.2" jmespath
 
-      - name: Run Molecule test - repo
+      - name: Install Ansible dependencies
+        run: ansible-galaxy install -r requirements.yml -f
+
+      - name: Run Molecule test
         run: molecule converge
         working-directory: "${{ github.repository }}"
         env:
