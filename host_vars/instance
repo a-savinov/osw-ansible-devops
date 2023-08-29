@@ -1,0 +1,148 @@
+ssh_users:
+  - name: "testuset"
+    password: "testpass"
+    ssh_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDDHzl2dYslJb3yzBDEeuyjMB2UeCtS1B10PtK7gzg45ngQHorPn0+yjMHfZVtayX39xxwP2J2PTIjLGmRnS2FpVXx+CeswUltAxWcZJy2p3209tp5PJKBIXHaoAdaiUFGJuGGnvaK0r6a6Vw7rqwyi5ahJXVhqhgfqQHMvKBJozF4Glh6jT2Da7gJb1oOuO6oODdpRw/8mHoB6hPBtfiJ/Ht1Pk1hIfqPCLSnClHILEhTXNvKxOgfzM8gfbcxi+eU24LwnW4/QikDI5FCmaqGsWY88/PV9DcDBZIQfvT1KFJYEl+8cCbZSymAfuXni85wZK4Yq6PQYPtOyS7x3tsW5wQo+vK9zq/X9k/bSAmwqxmxzRYqh/HzLpiEw2Aw6TK9snD0zhYmCwarfTS3vkEt55U1AAOW2twPeFtwDzVyzR2hgpgRGkvwPoWL3TzQVn4BYrjyqZiPskZc+P+kCKWcphy97sh7ma/+d7SWdRcAZl7bI/e24H0Wig1YNGjZXEIk="
+
+
+common_users:
+  - name: "testadmin"
+    password: "testadmin"
+    ssh_keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDDHzl2dYslJb3yzBDEeuyjMB2UeCtS1B10PtK7gzg45ngQHorPn0+yjMHfZVtayX39xxwP2J2PTIjLGmRnS2FpVXx+CeswUltAxWcZJy2p3209tp5PJKBIXHaoAdaiUFGJuGGnvaK0r6a6Vw7rqwyi5ahJXVhqhgfqQHMvKBJozF4Glh6jT2Da7gJb1oOuO6oODdpRw/8mHoB6hPBtfiJ/Ht1Pk1hIfqPCLSnClHILEhTXNvKxOgfzM8gfbcxi+eU24LwnW4/QikDI5FCmaqGsWY88/PV9DcDBZIQfvT1KFJYEl+8cCbZSymAfuXni85wZK4Yq6PQYPtOyS7x3tsW5wQo+vK9zq/X9k/bSAmwqxmxzRYqh/HzLpiEw2Aw6TK9snD0zhYmCwarfTS3vkEt55U1AAOW2twPeFtwDzVyzR2hgpgRGkvwPoWL3TzQVn4BYrjyqZiPskZc+P+kCKWcphy97sh7ma/+d7SWdRcAZl7bI/e24H0Wig1YNGjZXEIk="
+
+le_ssl_domain_name: opensourcewebsite.org
+
+php_fpm_state: reloaded
+php_fpm_enabled_on_boot: true
+php_fpm_daemon: "php{{ php_default_version_debian }}-fpm"
+php_fpm_pool_user: opensourcewebsite.org
+php_fpm_pool_group: opensourcewebsite.org
+php_fpm_pools:
+  - pool_name: opensourcewebsite.org
+    pool_template: www.conf.j2
+    pool_listen: "/run/php/{{ php_default_version_debian }}-opensourcewebsite.org.sock"
+    pool_listen_allowed_clients: "127.0.0.1"
+    pool_pm: dynamic
+    pool_pm_max_children: 5
+    pool_pm_start_servers: 2
+    pool_pm_min_spare_servers: 2
+    pool_pm_max_spare_servers: 5
+    pool_pm_max_requests: 500
+    pool_pm_status_path: /status
+
+nginx_listen_ipv6: false
+
+nginx_vhosts:
+  - listen: "80"
+    server_name: "opensourcewebsite.org"
+    root: "/www/opensourcewebsite.org/htdocs/web"
+    index: "index.php"
+    state: "present"
+    template: "{{ nginx_vhost_template }}"
+    filename: "opensourcewebsite.org.conf"
+    extra_parameters: |
+      location ^~ /.well-known/ {
+          default_type text/plain;
+      }
+
+      # location /.well-known/ {
+      #     return 404;
+      # }
+
+      return 301  https://$server_name$request_uri;
+
+  - listen: "443 ssl http2"
+    server_name: "opensourcewebsite.org"
+    root: "/www/opensourcewebsite.org/htdocs/web"
+    index: "index.php"
+    access_log: "/www/opensourcewebsite.org/logs/nginx-access.log"
+    error_log: "/www/opensourcewebsite.org/logs/nginx-error.log"
+    state: "present"
+    template: "{{ nginx_vhost_template }}"
+    filename: "opensourcewebsite.org-ssl.conf"
+    extra_parameters: |
+      charset off;
+      ssi on;
+      proxy_intercept_errors on;
+      fastcgi_intercept_errors on;
+
+      location ^~/.well-known/ {
+          default_type text/plain;
+      }
+
+      # location /.well-known/ {
+      #     return 404;
+      # }
+
+      location ~ /\. {
+          deny all;
+          log_not_found off;
+      }
+
+      location / {
+          try_files $uri $uri/ /index.php?$args;
+      }
+
+      location ~ \.php$ {
+          try_files $uri $uri/ /index.php?q=$uri&$args;
+          fastcgi_split_path_info ^((?U).+\.ph(?:p\d*|tml))(/?.+)$;
+          fastcgi_pass unix:/run/php/{{ php_default_version_debian }}-opensourcewebsite.org.sock;
+          fastcgi_index  index.php;
+          fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+          fastcgi_param  SCRIPT_NAME $fastcgi_script_name;
+          fastcgi_param  DOCUMENT_ROOT $document_root;
+          fastcgi_connect_timeout 60;
+          fastcgi_send_timeout 180;
+          fastcgi_read_timeout 180;
+          fastcgi_buffer_size 128k;
+          fastcgi_buffers 4 256k;
+          fastcgi_busy_buffers_size 256k;
+          fastcgi_temp_file_write_size 256k;
+          fastcgi_intercept_errors on;
+          include fastcgi_params;
+      }
+
+      ssl_stapling on;
+      ssl_stapling_verify on;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers on;
+      ssl_ciphers TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384:TLS-AES-128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK;
+      ssl_session_timeout 4h;
+      ssl_session_cache shared:SSL:40m;
+      ssl_dhparam /etc/nginx/ssl/dhparams.pem;
+      ssl_ecdh_curve secp384r1;
+      ssl_early_data on;
+      resolver_timeout 10s;
+      resolver 8.8.8.8 8.8.4.4 valid=300s;
+      ssl_certificate     /etc/ssl/certs/ssl-cert-snakeoil.pem;
+      ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+
+
+
+supervisor_programs:
+  - name: opensourcewebsite-gitautodeploy-8005
+    command: >- 
+      /usr/local/bin/git-auto-deploy
+      --quiet 
+      --config /etc/git-auto-deploy-opensourcewebsite.org.conf.json
+    state: present
+    configuration: |
+      directory=/www/opensourcewebsite.org
+      autostart=true
+      autorestart=true
+      stderr_logfile=/var/log/supervisor/git-auto-deploy-opensourcewebsite.org-stdout.log
+      stdout_logfile=/var/log/supervisor/git-auto-deploy-opensourcewebsite.org-stdout.log
+      user=opensourcewebsite.org
+  - name: opensourcewebsite-cron
+    command: >-
+      /usr/bin/php
+      -q /www/opensourcewebsite.org/htdocs/yii cron > runtime/logs/cron.log
+    state: present
+    configuration: |
+      directory=/www/opensourcewebsite.org
+      autostart=true
+      autorestart=true
+      stderr_logfile=/www/opensourcewebsite.org/htdocs/runtime/logs/cron-stderr.log
+      stdout_logfile=/www/opensourcewebsite.org/htdocs/runtime/logs/cron-stdout.log
+      user=opensourcewebsite.org
