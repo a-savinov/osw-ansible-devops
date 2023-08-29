@@ -1,8 +1,7 @@
 ---
 dependency:
-  name: galaxy
-  options:
-    role-file: molecule/default/requirements.yml
+  name: shell
+  command: ansible-galaxy install -r requirements.yml -f
 
 driver:
   name: docker
