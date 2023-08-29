@@ -1,16 +1,48 @@
-on: push
+name: Molecule test
+
+on:
+  push:
+    branches:
+        - master
+        - main
+
+# env:
+#   MOLECULE_DOCKER_VOLUMES: rw
+#   MOLECULE_DOCKER_CGROUPS_MODE: host
 
 jobs:
-  molecule:
-    runs-on: ubuntu-latest
+  repo:
+    name: Molecule test
+    environment:
+      name: test
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        config:
+          - os: "ubuntu22"
     steps:
-      - uses: actions/checkout@v2
+      - name: checkout
+        uses: actions/checkout@v3
         with:
           path: "${{ github.repository }}"
-      - name: Molecule
-        uses: monolithprojects/action-molecule@v1.4.5
-        with:
-          molecule_command: converge
-          # molecule_options: --debug --base-config molecule/_shared/base.yml
-          # molecule_args: --scenario-name ${{ matrix.scenario }}
 
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install test dependencies
+        run: pip3 install ansible docker molecule molecule-plugins[docker] "requests<2.29.2" jmespath
+
+      - name: Run Molecule test - repo
+        run: molecule converge
+        working-directory: "${{ github.repository }}"
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          # MOLECULE_IMAGE: ${{ matrix.config.os }}
+          # MOLECULE_DOCKER_CGROUPS_MODE: ${{ matrix.config.cgroup_mode }}
+          # MOLECULE_DOCKER_VOLUMES: ${{ matrix.config.volumes }}
+          # PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
